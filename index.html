@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Confidence Ladder</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100vh; background: #faf6ff; font-family: Georgia, 'Times New Roman', serif; }
+    #root { min-height: 100vh; }
+    input, textarea, button { font-family: inherit; }
+    button { cursor: pointer; border: none; background: none; }
+    .opt:hover { background: linear-gradient(135deg, #f8f0ff, #fff0f8) !important; border-color: #c47db0 !important; }
+    .rung-row:hover .rung-inner { border-color: #c47db0; background: rgba(255,255,255,0.9); }
+    textarea { resize: vertical; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: #d8b8f0; border-radius: 4px; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    .fade { animation: fadeUp .35s ease both; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const STAGES = [
+      {
+        id: 1, name: "Hiding", emoji: "🌱",
+        color: "#9b7bb8", glow: "rgba(155,123,184,0.25)",
+        bg: "linear-gradient(135deg,#f8f2ff,#f4eeff)", border: "#e4d4f4",
+        tagline: "Safety in invisibility",
+        description: "You keep yourself small. You dim your light to avoid judgment or being \"too much.\" Not showing up feels like protection.",
+        feelings: "\"Who am I to take up space?\" · \"I'll do it when I feel ready.\"",
+        stuck: "The belief that staying hidden keeps you safe — but it's keeping you lonely and unfulfilled.",
+        action: "Write down one truth about yourself you've never said out loud. You don't have to share it. Just witness it.",
+        teaching: "Hiding was once protective. Now you're learning that being seen doesn't have to mean being hurt.",
+        affirmation: "I am allowed to exist, fully and without apology.",
+      },
+      {
+        id: 2, name: "Hesitating", emoji: "🌿",
+        color: "#a87dc0", glow: "rgba(168,125,192,0.25)",
+        bg: "linear-gradient(135deg,#f9f0ff,#fdf0fc)", border: "#e8d8f8",
+        tagline: "One foot in, one foot out",
+        description: "You want to move forward but fear freezes you mid-step. You overthink and talk yourself out of things right before you act.",
+        feelings: "\"What if I fail?\" · \"I'm not ready yet.\" · \"What will people think?\"",
+        stuck: "Perfectionism disguised as preparation. You keep waiting for certainty that will never fully arrive.",
+        action: "Do one small, imperfect thing today — send the message, post the photo, make the ask. Before you feel ready.",
+        teaching: "Confidence isn't a feeling you wait for — it's a muscle you build by moving before you feel ready.",
+        affirmation: "I take imperfect action and trust myself to figure it out.",
+      },
+      {
+        id: 3, name: "Comparing", emoji: "🌸",
+        color: "#c47db0", glow: "rgba(196,125,176,0.25)",
+        bg: "linear-gradient(135deg,#fff0f8,#fdf0ff)", border: "#f4d8ec",
+        tagline: "Measuring yourself against others",
+        description: "You scroll, you compare, you shrink. Someone else's success makes you feel behind. Worth becomes an external benchmark.",
+        feelings: "\"She has it together and I don't.\" · \"I'll never be that.\"",
+        stuck: "The illusion that there's a standard you must meet before you're worthy of confidence.",
+        action: "Write 3 things you've done, survived, or created that no one else could replicate. That's your original proof.",
+        teaching: "Comparison is a detour from self-trust. Your journey is incomparable because it's entirely your own.",
+        affirmation: "My path is my own. I am not behind. I am exactly where I need to be.",
+      },
+      {
+        id: 4, name: "Reclaiming", emoji: "🔥",
+        color: "#b868a8", glow: "rgba(184,104,168,0.25)",
+        bg: "linear-gradient(135deg,#fff0fc,#f8f0ff)", border: "#f0d0e8",
+        tagline: "Choosing yourself again",
+        description: "Something is shifting. You question the old stories and choose yourself — sometimes imperfectly, but intentionally.",
+        feelings: "\"Maybe I am enough.\" · \"I'm tired of playing small.\" · \"I want more.\"",
+        stuck: "Old conditioning fighting the new version of you. It gets louder before it gets quieter.",
+        action: "Name one old belief about your body you inherited but never chose. Then write what you choose to believe instead.",
+        teaching: "Reclaiming is an act of courage. You're not starting over — you're starting from truth for the first time.",
+        affirmation: "I choose myself. I am worthy of the space I take up.",
+      },
+      {
+        id: 5, name: "Expressing", emoji: "✨",
+        color: "#9060b8", glow: "rgba(144,96,184,0.25)",
+        bg: "linear-gradient(135deg,#f4eeff,#fff0f8)", border: "#dcc8f4",
+        tagline: "Letting yourself be seen",
+        description: "You're starting to share, speak, show up. It's still vulnerable — but you're doing it anyway. Expression becomes self-respect.",
+        feelings: "\"This is scary but I'm doing it.\" · \"I have something worth saying.\"",
+        stuck: "Fear of rejection after finally choosing to speak. The inner critic is loudest here.",
+        action: "Share something authentic this week — a truth, a photo, a piece of work — and don't apologize for it.",
+        teaching: "Every act of authentic expression teaches your nervous system that being seen is safe.",
+        affirmation: "My voice matters. My presence is a gift. I am safe to be seen.",
+      },
+      {
+        id: 6, name: "Owning", emoji: "👑",
+        color: "#7b4db0", glow: "rgba(123,77,176,0.25)",
+        bg: "linear-gradient(135deg,#f2eaff,#f8f0ff)", border: "#d4bcf0",
+        tagline: "Claiming your worth without proof",
+        description: "You stop waiting for permission. You claim your worth as a given — not something to be earned.",
+        feelings: "\"I know my value.\" · \"I don't need their approval.\" · \"I belong here.\"",
+        stuck: "Occasional dips back into old patterns — especially under stress.",
+        action: "Say yes to something that previously felt too big for you. Notice: you survived. You belonged.",
+        teaching: "Owning is a daily practice. You return here each time you choose yourself.",
+        affirmation: "I own my worth. I claim my place. I need no permission to belong.",
+      },
+      {
+        id: 7, name: "Embodied", emoji: "🌙",
+        color: "#6638a0", glow: "rgba(102,56,160,0.3)",
+        bg: "linear-gradient(135deg,#ede4ff,#f4eeff)", border: "#c8b0e8",
+        tagline: "Confidence that lives in your body",
+        description: "Confidence is no longer a performance — it's who you are. You feel safe in your skin and magnetic to your own life.",
+        feelings: "\"I trust myself.\" · \"I am enough as I am.\" · \"My presence is enough.\"",
+        stuck: "Forgetting to tend to yourself. Embodied confidence requires ongoing care.",
+        action: "Create a daily embodiment ritual — 5 minutes of movement, breath, or mirror work: I am here, I am safe, I am enough.",
+        teaching: "Embodiment is a practice of coming home to yourself — again and again, for the rest of your life.",
+        affirmation: "I am home in my body. I am magnetic. I am enough, exactly as I am.",
+      },
+    ];
+
+    const QUIZ = [
+      {
+        q: "When you imagine being truly seen — sharing your real self, your body, your work — what surfaces first?",
+        opts: [
+          { text: "Fear. I avoid it completely.", stage: 1 },
+          { text: "Anxiety. I want to but I hold back.", stage: 2 },
+          { text: "Comparison. I wonder if I measure up.", stage: 3 },
+          { text: "A mix of hope and resistance.", stage: 4 },
+          { text: "Excitement with some nerves.", stage: 5 },
+          { text: "Readiness. I claim my space.", stage: 6 },
+          { text: "Ease. Being seen feels natural.", stage: 7 },
+        ],
+      },
+      {
+        q: "How do you relate to your body right now?",
+        opts: [
+          { text: "I hide it. I avoid mirrors and photos.", stage: 1 },
+          { text: "I want to feel good in it but I hesitate.", stage: 2 },
+          { text: "I compare it constantly to others.", stage: 3 },
+          { text: "I'm learning to choose kindness toward it.", stage: 4 },
+          { text: "I'm starting to celebrate it.", stage: 5 },
+          { text: "I dress and move with intention.", stage: 6 },
+          { text: "I feel at home in it, most days.", stage: 7 },
+        ],
+      },
+      {
+        q: "When you have something to share — an opinion, a creation, a truth — what do you do?",
+        opts: [
+          { text: "Keep it to myself. Always.", stage: 1 },
+          { text: "Draft it but never send it.", stage: 2 },
+          { text: "Share it, then immediately compare.", stage: 3 },
+          { text: "Share it nervously, then second-guess.", stage: 4 },
+          { text: "Share it, feel proud, move on.", stage: 5 },
+          { text: "Share without needing validation.", stage: 6 },
+          { text: "Share freely — it's just who I am.", stage: 7 },
+        ],
+      },
+    ];
+
+    function App() {
+      const [view, setView] = useState("quiz");
+      const [qIdx, setQIdx] = useState(0);
+      const [scores, setScores] = useState([]);
+      const [result, setResult] = useState(null);
+      const [activeStage, setActiveStage] = useState(null);
+      const [checked, setChecked] = useState({});
+      const [wins, setWins] = useState("");
+      const [habit, setHabit] = useState("");
+      const [notes, setNotes] = useState({});
+      const [copied, setCopied] = useState(false);
+
+      const pick = (stage) => {
+        const next = [...scores, stage];
+        if (qIdx < QUIZ.length - 1) { setScores(next); setQIdx(qIdx + 1); }
+        else {
+          const avg = Math.round(next.reduce((a, b) => a + b, 0) / next.length);
+          const r = Math.max(1, Math.min(7, avg));
+          setResult(r); setActiveStage(r); setScores(next); setView("tracker");
+        }
+      };
+
+      const restart = () => { setView("quiz"); setQIdx(0); setScores([]); setResult(null); setActiveStage(null); };
+
+      const copyAff = (text) => {
+        try { navigator.clipboard.writeText(text); } catch (e) {}
+        setCopied(true); setTimeout(() => setCopied(false), 2000);
+      };
+
+      const s = activeStage ? STAGES[activeStage - 1] : null;
+      const pct = result ? Math.round((result / 7) * 100) : 0;
+
+      return (
+        <div style={{ fontFamily: "Georgia, 'Times New Roman', serif", minHeight: "100vh", background: "#faf6ff", color: "#2e1a3e" }}>
+
+          {/* ── HERO ── */}
+          <div style={{ background: "linear-gradient(160deg,#3d1a6e 0%,#6b3498 40%,#a855c8 70%,#d47ab8 100%)", padding: "52px 24px 44px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: "-80px", left: "-80px", width: "320px", height: "320px", borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", bottom: "-60px", right: "-60px", width: "280px", height: "280px", borderRadius: "50%", background: "rgba(255,200,230,0.07)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", top: "30px", right: "15%", width: "6px", height: "6px", borderRadius: "50%", background: "rgba(255,255,255,0.4)" }} />
+            <div style={{ position: "absolute", top: "60px", left: "20%", width: "4px", height: "4px", borderRadius: "50%", background: "rgba(255,200,230,0.5)" }} />
+            <div style={{ position: "absolute", bottom: "40px", left: "30%", width: "5px", height: "5px", borderRadius: "50%", background: "rgba(255,255,255,0.3)" }} />
+            <div style={{ fontSize: "clamp(36px,6vw,56px)", fontWeight: 700, color: "#fff", lineHeight: 1.1, marginBottom: 14, letterSpacing: "-0.5px" }}>
+              The Confidence Ladder
+            </div>
+            <div style={{ fontSize: "clamp(15px,2.5vw,18px)", color: "rgba(255,255,255,0.8)", maxWidth: 480, margin: "0 auto 24px", lineHeight: 1.7, fontStyle: "italic" }}>
+              Seven stages from hiding to magnetic. Find where you are. Own your next step.
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 6, maxWidth: 560, margin: "0 auto 24px" }}>
+              {STAGES.map(st => (
+                <div key={st.id} style={{ padding: "5px 14px", borderRadius: 20, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)", fontSize: 12, border: "1px solid rgba(255,255,255,0.18)" }}>
+                  {st.emoji} {st.name}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+              {[["quiz", "Find my stage"], ["tracker", "My tracker"], ["ladder", "Full ladder"]].map(([v, label]) => (
+                <button key={v} onClick={() => setView(v)} style={{ padding: "10px 24px", borderRadius: 30, fontSize: 13, fontWeight: 600, background: view === v ? "#fff" : "rgba(255,255,255,0.12)", color: view === v ? "#6b3498" : "rgba(255,255,255,0.9)", border: `1.5px solid ${view === v ? "#fff" : "rgba(255,255,255,0.2)"}`, transition: "all .2s", letterSpacing: "0.3px" }}>
+                  {label}
+                </button>
+              ))}
+              {result && (
+                <button onClick={restart} style={{ padding: "10px 20px", borderRadius: 30, fontSize: 13, fontWeight: 600, background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1.5px solid rgba(255,255,255,0.15)" }}>
+                  ↺ Restart
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div style={{ maxWidth: 680, margin: "0 auto", padding: "32px 18px 80px" }}>
+
+            {/* ── QUIZ ── */}
+            {view === "quiz" && (
+              <div className="fade">
+                <div style={{ textAlign: "center", marginBottom: 32 }}>
+                  <div style={{ fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: "#9b6acc", marginBottom: 10, fontFamily: "sans-serif" }}>
+                    Question {qIdx + 1} of {QUIZ.length}
+                  </div>
+                  <div style={{ height: 3, background: "#ead8f4", borderRadius: 4, maxWidth: 260, margin: "0 auto 22px" }}>
+                    <div style={{ height: "100%", background: "linear-gradient(90deg,#9b6acc,#d47ab8)", borderRadius: 4, width: `${(qIdx / QUIZ.length) * 100}%`, transition: "width .4s" }} />
+                  </div>
+                  <div style={{ fontSize: "clamp(17px,3vw,22px)", fontWeight: 700, color: "#2e1a3e", lineHeight: 1.5, maxWidth: 520, margin: "0 auto" }}>
+                    {QUIZ[qIdx].q}
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {QUIZ[qIdx].opts.map((opt, i) => (
+                    <button key={i} className="opt" onClick={() => pick(opt.stage)} style={{ textAlign: "left", padding: "16px 20px", borderRadius: 14, border: "1.5px solid #ead8f4", background: "rgba(255,255,255,0.9)", color: "#2e1a3e", fontSize: 14, lineHeight: 1.5, display: "flex", alignItems: "center", gap: 14, transition: "all .2s" }}>
+                      <span style={{ width: 26, height: 26, minWidth: 26, borderRadius: "50%", background: "linear-gradient(135deg,#f0e4ff,#fce8f4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontFamily: "sans-serif", fontWeight: 700, color: "#9b6acc" }}>{i + 1}</span>
+                      {opt.text}
+                    </button>
+                  ))}
+                </div>
+                <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: "#b090c4", fontStyle: "italic", fontFamily: "sans-serif" }}>
+                  There is no wrong answer — every stage is sacred.
+                </p>
+              </div>
+            )}
+
+            {/* ── TRACKER ── */}
+            {view === "tracker" && (
+              <div className="fade">
+                {!result ? (
+                  <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                    <div style={{ fontSize: 40, marginBottom: 16 }}>✦</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: "#2e1a3e", marginBottom: 8 }}>Discover your stage first</div>
+                    <p style={{ fontSize: 14, color: "#7a5090", fontFamily: "sans-serif", marginBottom: 20 }}>Take the quick quiz to unlock your personalised tracker.</p>
+                    <button onClick={() => setView("quiz")} style={{ padding: "12px 32px", borderRadius: 30, background: "linear-gradient(135deg,#9b6acc,#d47ab8)", color: "#fff", fontSize: 14, fontWeight: 600 }}>
+                      Take the quiz →
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ background: s.bg, border: `1.5px solid ${s.border}`, borderRadius: 20, padding: "28px 26px", marginBottom: 24, position: "relative", overflow: "hidden" }}>
+                      <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: s.glow, pointerEvents: "none" }} />
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 16, position: "relative", zIndex: 1 }}>
+                        <div style={{ fontSize: 44, lineHeight: 1 }}>{s.emoji}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 10, fontFamily: "sans-serif", letterSpacing: 3, textTransform: "uppercase", color: s.color, marginBottom: 4 }}>You are here · Stage {s.id} of 7</div>
+                          <div style={{ fontSize: 26, fontWeight: 700, color: "#2e1a3e", marginBottom: 4 }}>{s.name}</div>
+                          <div style={{ fontSize: 13, fontFamily: "sans-serif", fontStyle: "italic", color: "#7a5090", marginBottom: 12 }}>{s.tagline}</div>
+                          <div style={{ fontSize: 14, fontFamily: "sans-serif", color: "#4a2a60", lineHeight: 1.8 }}>{s.description}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ background: "rgba(255,255,255,0.8)", borderRadius: 16, padding: "20px 22px", marginBottom: 16, border: "1px solid #e8d4f4" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                        <div style={{ fontSize: 12, fontFamily: "sans-serif", fontWeight: 600, color: "#7a5090", letterSpacing: 1, textTransform: "uppercase" }}>Journey progress</div>
+                        <div style={{ fontSize: 13, fontFamily: "sans-serif", fontWeight: 700, color: s.color }}>{pct}%</div>
+                      </div>
+                      <div style={{ height: 8, background: "#ead8f4", borderRadius: 8 }}>
+                        <div style={{ height: "100%", background: `linear-gradient(90deg,#c4b0e8,${s.color})`, borderRadius: 8, width: `${pct}%`, transition: "width .6s ease" }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                        <span style={{ fontSize: 10, color: "#b090c4", fontFamily: "sans-serif" }}>Stage 1: Hiding</span>
+                        <span style={{ fontSize: 10, color: "#b090c4", fontFamily: "sans-serif" }}>Stage 7: Embodied</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+                      {[["She's feeling", s.feelings], ["What keeps her here", s.stuck]].map(([label, body]) => (
+                        <div key={label} style={{ background: "rgba(255,255,255,0.85)", borderRadius: 14, padding: "16px", border: "1px solid #e8d4f4" }}>
+                          <div style={{ fontSize: 10, fontFamily: "sans-serif", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: s.color, marginBottom: 8 }}>{label}</div>
+                          <div style={{ fontSize: 12.5, fontFamily: "sans-serif", color: "#4a2a60", lineHeight: 1.7, fontStyle: "italic" }}>{body}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ background: s.bg, border: `1.5px solid ${s.border}`, borderRadius: 14, padding: "20px 22px", marginBottom: 16 }}>
+                      <div style={{ fontSize: 10, fontFamily: "sans-serif", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: s.color, marginBottom: 8 }}>✦ Your next small step</div>
+                      <div style={{ fontSize: 14, fontFamily: "sans-serif", color: "#2e1a3e", lineHeight: 1.8, marginBottom: 14 }}>{s.action}</div>
+                      <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                        <input type="checkbox" checked={!!checked[s.id]} onChange={() => setChecked(p => ({ ...p, [s.id]: !p[s.id] }))} style={{ width: 18, height: 18, accentColor: s.color }} />
+                        <span style={{ fontSize: 13, fontFamily: "sans-serif", color: "#8a6aaa", fontStyle: "italic" }}>
+                          {checked[s.id] ? "✓ I did this. I'm proud of myself." : "Mark complete when you've taken this step"}
+                        </span>
+                      </label>
+                    </div>
+
+                    <div style={{ borderRadius: 14, padding: "18px 20px", marginBottom: 16, border: "1px dashed #dcc8f0", background: "rgba(255,255,255,0.6)" }}>
+                      <div style={{ fontSize: 10, fontFamily: "sans-serif", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "#9b6acc", marginBottom: 8 }}>✦ What this stage is teaching you</div>
+                      <div style={{ fontSize: 14, fontFamily: "sans-serif", color: "#4a2a60", lineHeight: 1.8, fontStyle: "italic" }}>{s.teaching}</div>
+                    </div>
+
+                    <div style={{ background: "rgba(255,255,255,0.88)", borderRadius: 16, padding: "22px", marginBottom: 16, border: "1px solid #e8d4f4" }}>
+                      <div style={{ fontSize: 11, fontFamily: "sans-serif", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "#9b6acc", marginBottom: 18 }}>✦ Growth tracker</div>
+                      <div style={{ fontSize: 11, fontFamily: "sans-serif", color: "#8a6aaa", marginBottom: 8, letterSpacing: 0.5 }}>Where are you today?</div>
+                      <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
+                        {STAGES.map(st => (
+                          <button key={st.id} onClick={() => setActiveStage(st.id)} style={{ width: 38, height: 38, borderRadius: "50%", border: `2px solid ${activeStage === st.id ? st.color : checked[st.id] ? "#c8b0e0" : "#e4d4f4"}`, background: activeStage === st.id ? st.color : checked[st.id] ? "#c8b0e0" : "transparent", color: activeStage === st.id ? "#fff" : "#8a6aaa", fontSize: checked[st.id] ? 13 : 12, fontFamily: "sans-serif", fontWeight: 700, transition: "all .2s" }}>
+                            {checked[st.id] ? "✓" : st.id}
+                          </button>
+                        ))}
+                      </div>
+                      <div style={{ marginBottom: 14 }}>
+                        <div style={{ fontSize: 11, fontFamily: "sans-serif", fontWeight: 600, color: "#7a5090", marginBottom: 6, letterSpacing: 0.5 }}>Growth evidence — record your wins</div>
+                        <textarea value={wins} onChange={e => setWins(e.target.value)} placeholder="What brave thing did you do? What shifted? What evidence do you have that you're growing?..." rows={3} style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1.5px solid #e4d4f4", background: "rgba(248,240,255,0.6)", fontSize: 13, color: "#2e1a3e", lineHeight: 1.7, outline: "none" }} />
+                      </div>
+                      <div style={{ marginBottom: 14 }}>
+                        <div style={{ fontSize: 11, fontFamily: "sans-serif", fontWeight: 600, color: "#7a5090", marginBottom: 6, letterSpacing: 0.5 }}>My confidence habit this week</div>
+                        <input value={habit} onChange={e => setHabit(e.target.value)} placeholder="e.g. 5 minutes of mirror work each morning..." style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1.5px solid #e4d4f4", background: "rgba(248,240,255,0.6)", fontSize: 13, color: "#2e1a3e", outline: "none" }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, fontFamily: "sans-serif", fontWeight: 600, color: "#7a5090", marginBottom: 6, letterSpacing: 0.5 }}>Notes & reflections</div>
+                        <textarea value={notes[s.id] || ""} onChange={e => setNotes(p => ({ ...p, [s.id]: e.target.value }))} placeholder="What's coming up for you at this stage? What do you need to hear?" rows={3} style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1.5px solid #e4d4f4", background: "rgba(248,240,255,0.6)", fontSize: 13, color: "#2e1a3e", lineHeight: 1.7, outline: "none" }} />
+                      </div>
+                    </div>
+
+                    {s.id < 7 && (
+                      <div style={{ borderRadius: 14, padding: "18px 20px", background: "linear-gradient(135deg,#f8f0ff,#fff0f8)", border: "1.5px solid #e4c8f0", marginBottom: 16 }}>
+                        <div style={{ fontSize: 10, fontFamily: "sans-serif", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "#9b6acc", marginBottom: 10 }}>✦ The next rung awaits</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <span style={{ fontSize: 28 }}>{STAGES[s.id].emoji}</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 700, fontSize: 15, color: "#2e1a3e", marginBottom: 1 }}>Stage {s.id + 1}: {STAGES[s.id].name}</div>
+                            <div style={{ fontSize: 12, fontFamily: "sans-serif", color: "#8a6aaa", fontStyle: "italic" }}>{STAGES[s.id].tagline}</div>
+                          </div>
+                          <button onClick={() => setActiveStage(s.id + 1)} style={{ padding: "9px 18px", borderRadius: 20, background: "linear-gradient(135deg,#9b6acc,#d47ab8)", color: "#fff", fontSize: 12, fontFamily: "sans-serif", fontWeight: 600 }}>Explore →</button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ textAlign: "center", padding: "24px", background: s.bg, borderRadius: 16, border: `1px solid ${s.border}`, marginBottom: 16 }}>
+                      <div style={{ fontSize: 10, fontFamily: "sans-serif", letterSpacing: 2.5, textTransform: "uppercase", color: s.color, marginBottom: 12 }}>Your affirmation</div>
+                      <div style={{ fontSize: 17, fontStyle: "italic", color: "#2e1a3e", lineHeight: 1.8 }}>"{s.affirmation}"</div>
+                      <button onClick={() => copyAff(s.affirmation)} style={{ marginTop: 16, padding: "9px 24px", borderRadius: 30, border: "1.5px solid #dcc8f0", background: "rgba(255,255,255,0.85)", color: "#9b6acc", fontSize: 12, fontFamily: "sans-serif", fontWeight: 600 }}>
+                        {copied ? "✓ Copied" : "📋 Copy affirmation"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ── LADDER ── */}
+            {view === "ladder" && (
+              <div className="fade">
+                <div style={{ textAlign: "center", marginBottom: 28 }}>
+                  <div style={{ fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: "#9b6acc", fontFamily: "sans-serif", marginBottom: 8 }}>All seven stages</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: "#2e1a3e", marginBottom: 6 }}>The Full Confidence Ladder</div>
+                  <p style={{ fontSize: 14, fontFamily: "sans-serif", color: "#7a5090", fontStyle: "italic" }}>Click any stage to explore it fully.</p>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {[...STAGES].reverse().map(st => {
+                    const isActive = result === st.id;
+                    const isDone = result && st.id < result;
+                    return (
+                      <div key={st.id} className="rung-row" onClick={() => { setActiveStage(st.id); setView("tracker"); }} style={{ cursor: "pointer" }}>
+                        <div className="rung-inner" style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", borderRadius: 14, border: `1.5px solid ${isActive ? st.color : isDone ? "#d8c4e8" : "#ead8f4"}`, background: isActive ? st.bg : "rgba(255,255,255,0.75)", transition: "all .2s", position: "relative", overflow: "hidden" }}>
+                          {isActive && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: st.color, borderRadius: "14px 0 0 14px" }} />}
+                          <div style={{ width: 44, height: 44, minWidth: 44, borderRadius: "50%", background: isActive ? `linear-gradient(135deg,${st.color},${st.color}cc)` : isDone ? "#c8b0e0" : "#f0e4ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: isDone ? 15 : 22, boxShadow: isActive ? `0 4px 16px ${st.glow}` : "none" }}>
+                            {isDone ? "✓" : st.emoji}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 2 }}>
+                              <span style={{ fontSize: 10, fontFamily: "sans-serif", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: isActive ? st.color : "#b090c4" }}>Stage {st.id}</span>
+                              {isActive && <span style={{ fontSize: 9, fontFamily: "sans-serif", padding: "2px 9px", borderRadius: 10, background: st.color, color: "#fff", fontWeight: 700 }}>You are here</span>}
+                              {isDone && <span style={{ fontSize: 9, fontFamily: "sans-serif", padding: "2px 9px", borderRadius: 10, background: "#c8b0e0", color: "#fff", fontWeight: 700 }}>Complete</span>}
+                            </div>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: "#2e1a3e", marginBottom: 1 }}>{st.name}</div>
+                            <div style={{ fontSize: 12, fontFamily: "sans-serif", color: "#8a6aaa", fontStyle: "italic" }}>{st.tagline}</div>
+                          </div>
+                          <div style={{ fontSize: 14, color: "#c4a0d8", paddingRight: 4 }}>→</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{ marginTop: 32, background: "rgba(255,255,255,0.7)", border: "1.5px dashed #dcc8f0", borderRadius: 18, padding: "24px 26px" }}>
+                  <div style={{ fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase", color: "#9b6acc", fontFamily: "sans-serif", marginBottom: 16 }}>✦ What this journey is teaching you</div>
+                  {[
+                    ["Confidence is built through repetition", "Every time you act despite fear, you wire new neural pathways. You're not waiting to feel confident — you're building it by moving."],
+                    ["Embodiment matters more than perfection", "Confidence that lives in your body is unshakeable. It's not about the right words or look — it's about feeling safe in your skin."],
+                    ["Small actions create identity shifts", "Each tiny act of courage sends a message to your subconscious: I am someone who shows up. That's how identity changes."],
+                  ].map(([title, body]) => (
+                    <div key={title} style={{ display: "flex", gap: 12, marginBottom: 14 }}>
+                      <div style={{ color: "#c47db0", fontSize: 14, marginTop: 2 }}>✦</div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "#2e1a3e", marginBottom: 3 }}>{title}</div>
+                        <div style={{ fontSize: 13, fontFamily: "sans-serif", color: "#7a5090", lineHeight: 1.7 }}>{body}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ textAlign: "center", marginTop: 24, padding: "20px", background: "rgba(255,255,255,0.6)", borderRadius: 14, border: "1px solid #e8d4f4" }}>
+                  <div style={{ fontSize: 15, fontStyle: "italic", color: "#7a5090", lineHeight: 1.8 }}>
+                    "You are not broken. You are not behind.<br />You are a woman in the middle of becoming."
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
